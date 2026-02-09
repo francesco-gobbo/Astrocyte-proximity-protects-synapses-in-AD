@@ -29,7 +29,7 @@ library(lubridate)
 
 ```{r}
 # set working directory
-setwd("C:\\Users\\fr87_\\OneDrive - University of Edinburgh\\2023 - AD Project\\Paper\\2025 Gobbo et al\\R")
+setwd("C:\\Users\\fr87_\\OneDrive - University of Edinburgh\\2023 - AD Project\\Paper\\2025 Gobbo et al\\R Analysis")
 ```
 
 ----------------
@@ -671,9 +671,350 @@ emmeans(ME_Survival, list(pairwise ~ Astrocyte_contact | AbetaTreatment ), adjus
 ```
 
 ----------------
-Here need to insert activity data for wt animals
+Data for Fig. S5
+----------------
+Activity change in WT slices with AD BRAIN HOMOGENATE
+----------------
+```{r}
+# import CSV
+WTData <- read.csv("FigS5Data_WT_activity_long.csv")
+
+WTData$Animal_ID <- as.factor(WTData$Animal_ID)
+WTData$Slice_ID <- as.factor(WTData$Slice_ID)
+
+WTData$Sex <- as.factor(WTData$Sex)
+
+WTData$EventRateHz <- WTData$Hz
+
+WTData$TreatmentTime <- as.factor(WTData$Time)
+
+WTData2 <- WTData # removes NaNs
+
+WTData2_animal <- WTData2 %>%
+    group_by(Animal_ID, TreatmentTime) %>%
+    summarize(EventRateHz=mean(EventRateHz))
+```
+```{r}
+EventRateAbPrePostViolinPlotwt <- ggplot(WTData2, aes(TreatmentTime, EventRateHz)) +
+ geom_violin(draw_quantiles = c(0.25, 0.75),
+  linetype = "dashed") +
+geom_violin(fill="transparent",draw_quantiles = 0.5) +
+  geom_point(data = WTData2, aes(x = TreatmentTime, y = EventRateHz, colour = Animal_ID), position = position_jitter(w = 0.05, h =   0.0), alpha = 0.2, size = 0.5) +
+   geom_point(data = WTData2_animal, aes(x = TreatmentTime, y = EventRateHz, colour = Animal_ID), position = position_jitter(w = 0.1, h =   0.0), alpha = 0.8, size = 2.5) +
+  theme_classic(base_size = 14) + 
+  xlab(NULL)  +
+  theme(axis.text.x = element_text(hjust=0.5, vjust = -0.15, size = 15.0, face = "bold")) + 
+  ylab(expression(bold(paste("Spine calcium transient event rate (Hz)")))) +
+  guides(colour = "none")  # removes group legend
+
+ EventRateAbPrePostViolinPlotwt
+
+```
+```{r}
+ 
+ME_EventRateHzwt <- lmer(EventRateHz ~ TreatmentTime+Sex
+                    +(1|Animal_ID/Slice_ID), data = WTData2)
+
+summary(ME_EventRateHzwt)
+resid_panel(ME_EventRateHzwt)
+anova(ME_EventRateHzwt)
+emmeans(ME_EventRateHzwt, pairwise ~ TreatmentTime , adjust = "tukey")
+```
+
+----------------
+Survival by Genotype
 ----------------
 
+```{r}
+
+# import CSV
+SurvDataWT <- read.csv("FigS5Data_Survival_probability_GCFD_vs_WT.csv")
+
+# assign factors to relevant variables and make exp date a real date
+
+SurvDataWT$Animal_ID <- as.factor(SurvDataWT$Animal_ID)
+SurvDataWT$Slice_ID <- as.factor(SurvDataWT$Slice_ID)
+SurvDataWT$Genotype <- as.factor(SurvDataWT$Genotype)
+SurvDataWT$Survival_probability <- as.numeric(SurvDataWT$Survival_probability)
+
+SurvDataWT_animal <- SurvDataWT %>%
+    group_by(Animal_ID, Genotype) %>%
+    summarize(Survival_probability=mean(Survival_probability))
+```
+```{r}
+
+SurvViolinPlotSurvWT <- ggplot(SurvDataWT, aes(x= Genotype, y=Survival_probability)) +
+ geom_violin(draw_quantiles = c(0.25, 0.75),
+  linetype = "dashed") +
+ geom_violin(fill="transparent",draw_quantiles = 0.5) +
+ geom_point(data = SurvDataWT, aes(x = Genotype, y = Survival_probability, colour = Animal_ID), position = position_jitter(w = 0.05, h =   0.0), alpha = 0.2, size = 0.5) +
+   geom_point(data = SurvDataWT_animal, aes(x = Genotype, y = Survival_probability, colour = Animal_ID), position = position_jitter(w = 0.1, h =   0.0), alpha = 0.6, size = 2.5) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "grey", size = 1) +  # Add horizontal dotted line
+  theme_classic(base_size = 14) + 
+#  ylim(0,6)+
+  xlab(NULL)  +
+   theme(
+    axis.text.x = element_text(hjust = 0.5, vjust = -0.15, size = 15.0, face = "bold"),
+    plot.margin = margin(t = 10, r = 10, b = 10, l = 30)  # Adjust left margin here
+  ) +
+  ylab(expression(bold(paste("Percent survived spines")))) +
+  guides(colour = "none") 
+
+SurvViolinPlotSurvWT 
+ 
+  ggsave(filename = "SurvPlotAstroPsVueExp.png",
+       width = 10,
+       height = 6,
+       dpi = 600,
+       limitsize = FALSE
+       )
+
+  
+ME_SurvWT <- lmer(Survival_probability ~ Genotype+Sex +(1|Animal_ID), data = SurvDataWT)
+summary(ME_SurvWT)
+resid_panel(ME_SurvWT) # residuals look ok
+shapiro.test(resid(ME_SurvWT)) # don't meet assumptions W = 0.96089, p-value < 2.2e-16
+anova(ME_SurvWT)
+emmeans(ME_SurvWT, list(pairwise ~ Genotype), adjust = "tukey") #
+```
+
+----------------
+Data for Fig. S7
+----------------
+Analysis of spine activity with AD BRAIN HOMOGENATE at 24h
+----------------
+```{r}
+# import CSV
+Spine24Data <- read.csv("FigS7Data_long_PRE_POST_24h.csv")
+
+Spine24Data$Animal_ID <- as.factor(Spine24Data$Animal_ID)
+Spine24Data$Slice_ID <- as.factor(Spine24Data$Slice_ID)
+Spine24Data$AbetaTreatment <- as.factor(Spine24Data$Abeta)
+
+Spine24Data$Sex <- as.factor(Spine24Data$Sex)
+
+Spine24Data$EventRateHz <- Spine24Data$Hz
+
+Spine24Data$TreatmentTime <- as.factor(Spine24Data$Time)
+
+Spine24Data$AbetaTreatment <- recode(Spine24Data$AbetaTreatment, '+' = 'Ab+ homogenate',
+                           '-'  = 'Ab- homogenate')
+
+Spine24Data$Astrocyte_contact <- recode(Spine24Data$Astrocyte_contact, 'Y' = 'Astrocyte contact',
+                           'N'  = 'No astrocyte contact')
+
+Spine24Data2 <- na.omit(Spine24Data) # removes NaNs
+
+Spine24Data2_animal <- Spine24Data2 %>%
+    group_by(Animal_ID, AbetaTreatment, Astrocyte_contact, TreatmentTime) %>%
+    summarize(EventRateHz=mean(EventRateHz))
+```
+```{r}
+EventRateAbPrePostViolinPlot <- ggplot(Spine24Data2, aes(TreatmentTime, EventRateHz)) +
+ geom_violin(draw_quantiles = c(0.25, 0.75),
+  linetype = "dashed") +
+geom_violin(fill="transparent",draw_quantiles = 0.5) +
+  geom_point(data = Spine24Data2, aes(x = TreatmentTime, y = EventRateHz, colour = Animal_ID), position = position_jitter(w = 0.05, h =   0.0), alpha = 0.2, size = 0.5) +
+   geom_point(data = Spine24Data2_animal, aes(x = TreatmentTime, y = EventRateHz, colour = Animal_ID), position = position_jitter(w = 0.1, h =   0.0), alpha = 0.8, size = 2.5) +
+  theme_classic(base_size = 14) + 
+  xlab(NULL)  +
+  theme(axis.text.x = element_text(hjust=0.5, vjust = -0.15, size = 15.0, face = "bold")) + 
+  ylab(expression(bold(paste("Spine calcium transient event rate (Hz)")))) +
+  guides(colour = "none") +  # removes group legend
+  facet_wrap(~ (AbetaTreatment), labeller = label_value, nrow=1)+theme(strip.text = element_text(size = 8))
+
+ EventRateAbPrePostViolinPlot 
+
+``` 
+```{r}
+ 
+ME_EventRateHz <- lmer(EventRateHz ~ TreatmentTime*AbetaTreatment+Sex
+                    +(1|Animal_ID/Slice_ID), data = Spine24Data2)
+
+summary(ME_EventRateHz)
+resid_panel(ME_EventRateHz)
+anova(ME_EventRateHz)
+emmeans(ME_EventRateHz, pairwise ~ TreatmentTime | AbetaTreatment, adjust = "tukey")
+emmeans(ME_EventRateHz, pairwise ~ TreatmentTime , by = "AbetaTreatment", adjust = "tukey")
+```
+
+-------------
+Change in activity 
+-------------
+
+```{r}
+# import CSV
+Spine24Data3 <- read.csv("FigS7Data_Activity_Change_24h.csv")
+
+Spine24Data3$Animal_ID <- as.factor(Spine24Data3$Animal_ID)
+Spine24Data3$Slice_ID <- as.factor(Spine24Data3$Slice_ID)
+Spine24Data3$AbetaTreatment <- as.factor(Spine24Data3$Abeta)
+
+Spine24Data3$Sex <- as.factor(Spine24Data3$Sex)
+
+Spine24Data3$DelHzOverHz_ActivityChange <- Spine24Data3$DelHz_over_Hz
+
+Spine24Data3$AbetaTreatment <- recode(Spine24Data3$AbetaTreatment, '+' = 'Ab+ homogenate',
+                           '-'  = 'Ab- homogenate')
+
+Spine24Data3$Astrocyte_contact <- recode(Spine24Data3$Astrocyte_contact, 'Y' = 'Astrocyte contact',
+                           'N'  = 'No astrocyte contact')
+
+Spine24Data4 <- na.omit(Spine24Data3) # removes NaNs
+Spine24Data4 <- Spine24Data4[
+                                   !is.na(Spine24Data4$Astrocyte_contact) & Spine24Data4$Astrocyte_contact != "" &
+                                    is.finite(Spine24Data4$DelHzOverHz_ActivityChange) & !is.na(Spine24Data4$DelHzOverHz_ActivityChange), ]
+
+
+Spine24Data4_animal <- Spine24Data4 %>%
+    group_by(Animal_ID, AbetaTreatment) %>%
+    summarize(              DelHzOverHz_ActivityChange=mean(DelHzOverHz_ActivityChange))
+
+```
+
+```{r}
+library(RColorBrewer)
+
+Spine24Data4_animal_survival <- Spine24Data4 %>%
+    group_by(Animal_ID, AbetaTreatment, Sex) %>%
+    summarize(DelHzOverHz_ActivityChange=mean(DelHzOverHz_ActivityChange))
+
+color_values <- c("#1F77B4", "#FF7F0E", "#2CA02C", "#D62728", "#9467BD",
+  "#8C564B", "#E377C2", "#7F7F7F", "#BCBD22", "#17BECF",
+  "#AEC7E8", "#FFBB78", "#98DF8A", "#FF9896", "#C5B0D5",
+  "#C49C94", "#F7B6D2", "#9EDAE5", "#393B79", "#637939",
+  "#8C6D31", "#843C39", "#7B4173", "#17BECF", "#9C9EDE", "#9C1EDE")
+
+DelHzOverHz_ACtivityChangeViolinPlotSurv <- ggplot(Spine24Data4, aes(x= AbetaTreatment, y=DelHzOverHz_ActivityChange)) +
+ geom_violin(draw_quantiles = c(0.25, 0.75),
+  linetype = "dashed") +
+ geom_violin(fill="transparent",draw_quantiles = 0.5) +
+ geom_point(data = Spine24Data4, aes(x = AbetaTreatment, y = DelHzOverHz_ActivityChange, colour = Animal_ID), position = position_jitter(w = 0.05, h =   0.0), alpha = 0.2, size = 0.5) +
+   geom_point(data = Spine24Data4_animal_survival, aes(x = AbetaTreatment, y = DelHzOverHz_ActivityChange, colour = Animal_ID, shape=Sex), position = position_jitter(w = 0.3, h =   0.0), alpha = 0.8, size = 2.5, stroke=1)+ scale_color_manual(values=color_values)+
+  geom_hline(yintercept = 0, linetype = "dotted", color = "grey", size = 1) +  # Add horizontal dotted line
+  theme_classic(base_size = 14) + 
+#  ylim(0,6)+
+  xlab(NULL)  +
+   theme(
+    axis.text.x = element_text(hjust = 0.5, vjust = -0.15, size = 15.0, face = "bold"),
+    plot.margin = margin(t = 10, r = 10, b = 10, l = 30)  # Adjust left margin here
+  ) +
+  ylab(expression(bold(paste("Spine calcium transient change 2h 
+  post-treatment (Del Hz post / Hz )")))) +
+  guides(colour = "none") 
+ DelHzOverHz_ACtivityChangeViolinPlotSurv 
+ 
+
+```
+
+```{r}
+ME_DelHzOverHz_ActivityChange24 <- lmer(DelHzOverHz_ActivityChange ~ AbetaTreatment*Sex + (1|Animal_ID/Slice_ID), data = Spine24Data4)
+
+summary(ME_DelHzOverHz_ActivityChange24)
+
+resid_panel(ME_DelHzOverHz_ActivityChange24) # residuals look ok
+
+shapiro.test(resid(ME_DelHzOverHz_ActivityChange24)) # don't meet assumptions W = 0.55162, p-value < 2.2e-16
+
+anova(ME_DelHzOverHz_ActivityChange24)
+```
+
+```{r}
+ME_DelHzOverHz_ActivityChange_sex24 <- lmer(DelHzOverHz_ActivityChange ~ AbetaTreatment + Sex + (1|Animal_ID/Slice_ID), data = Spine24Data4)
+anova(ME_DelHzOverHz_ActivityChange_sex24)
+summary(ME_DelHzOverHz_ActivityChange_sex24)
+resid_panel(ME_DelHzOverHz_ActivityChange_sex24)
+emmeans(ME_DelHzOverHz_ActivityChange_sex24, list(pairwise ~  AbetaTreatment), adjust = "tukey") #
+
+```
+
+
+```{r}
+Spine24Data4$DelHzOverHz_ActivityChangeTuk <- transformTukey(Spine24Data4$DelHzOverHz_ActivityChange)
+
+ME_DelHzOverHz_ActivityChange_Tukey_sex24 <- lmer(DelHzOverHz_ActivityChangeTuk ~ AbetaTreatment+Sex +(1|Animal_ID/Slice_ID), data = Spine24Data4)
+
+summary(ME_DelHzOverHz_ActivityChange_Tukey_sex24)
+resid_panel(ME_DelHzOverHz_ActivityChange_Tukey_sex24)
+
+anova(ME_DelHzOverHz_ActivityChange_Tukey_sex24)
+```
+
+
+-------------
+Change in activity by astrocyte
+-------------
+
+```{r}
+
+Spine24Data4_animal_astro <- Spine24Data4 %>%
+    group_by(Animal_ID, AbetaTreatment, Astrocyte_contact, Sex) %>%
+    summarize(          DelHzOverHz_ActivityChange=mean(DelHzOverHz_ActivityChange))
+
+
+DelHzOverHz_ACtivityChangeViolinPlotAstro24 <- ggplot(Spine24Data4, aes(x=AbetaTreatment, y=DelHzOverHz_ActivityChange)) +
+ geom_violin(draw_quantiles = c(0.25, 0.75),
+  linetype = "dashed") +
+ geom_violin(fill="transparent",draw_quantiles = 0.5) +
+ geom_point(data = Spine24Data4, aes(x = AbetaTreatment, y = DelHzOverHz_ActivityChange, colour = Animal_ID), position = position_jitter(w = 0.05, h =   0.0), alpha = 0.2, size = 0.5) +
+   geom_point(data = Spine24Data4_animal_astro, aes(x = AbetaTreatment, y = DelHzOverHz_ActivityChange, colour = Animal_ID, shape=Sex), position = position_jitter(w = 0.1, h =   0.0), alpha = 0.6, size = 2.5) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "grey", size = 1) +  # Add horizontal dotted line
+  theme_classic(base_size = 14) + 
+#  ylim(0,6)+
+  xlab(NULL)  +
+   theme(
+    axis.text.x = element_text(hjust = 0.5, vjust = -0.15, size = 15.0, face = "bold"),
+    plot.margin = margin(t = 10, r = 10, b = 10, l = 30)  # Adjust left margin here
+  ) +
+  ylab(expression(bold(paste("Spine calcium transient change 2h 
+  post-treatment (Del Hz  / Hz )")))) +
+  guides(colour = "none") +
+  facet_wrap(~ ( Astrocyte_contact), labeller =  label_value, nrow=1)+theme(strip.text = element_text(size = 8))
+ DelHzOverHz_ACtivityChangeViolinPlotAstro24
+```
+
+```{r}
+ME_DelHzOverHz_ActivityChangeAstroTuk24 <- lmer(DelHzOverHz_ActivityChangeTuk ~ Astrocyte_contact*AbetaTreatment +Sex  +(1|Animal_ID/Slice_ID), data = Spine24Data4)
+
+summary(ME_DelHzOverHz_ActivityChangeAstroTuk24)
+
+anova(ME_DelHzOverHz_ActivityChangeAstroTuk24)
+
+emmeans(ME_DelHzOverHz_ActivityChangeAstroTuk24, list(pairwise ~  AbetaTreatment | Astrocyte_contact),  adjust = "tukey") #
+
+```
+
+----------------
+Data for Fig. S9
+----------------
+Astrocyte number per field
+----------------
+
+```{r}
+# import CSV
+AstroData <- read.csv("FigS9Data_Astrocytes_per_field.csv")
+
+AstroData$Animal_ID <- as.factor(AstroData$Animal_ID)
+AstroData$Slice_ID <- as.factor(AstroData$Slice_ID)
+AstroData$AbetaTreatment <- as.factor(AstroData$Abeta)
+
+AstroData$Sex <- as.factor(AstroData$Sex)
+
+AstroData$N_Astrocytes <- AstroData$N_Astrocytes
+
+
+AstroData$AbetaTreatment <- recode(AstroData$AbetaTreatment, '+' = 'Ab+ homogenate',
+                           '-'  = 'Ab- homogenate')
+
+AstroData2 <- na.omit(AstroData) # removes NaNs
+
+ME_Astro <- lmer(N_Astrocytes ~ AbetaTreatment + Sex + (1|Animal_ID), data = AstroData2)
+anova(ME_Astro)
+summary(ME_Astro)
+resid_panel(ME_Astro)
+anova(ME_Astro)
+
+```
 
 ----------------
 Data for Fig.5
