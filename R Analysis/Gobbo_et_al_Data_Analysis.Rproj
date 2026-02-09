@@ -1,0 +1,16 @@
+Version: 1.0
+ProjectId: 65a21517-b89c-42c0-8bc6-4e1c592e8505
+
+RestoreWorkspace: Default
+SaveWorkspace: Default
+AlwaysSaveHistory: Default
+
+EnableCodeIndexing: Yes
+UseSpacesForTab: Yes
+NumSpacesForTab: 2
+Encoding: UTF-8
+
+RnwWeave: Sweave
+LaTeX: pdfLaTeX
+
+ProjectName: Fran_GCFD_Analysis_Del_hz_over_Hz
